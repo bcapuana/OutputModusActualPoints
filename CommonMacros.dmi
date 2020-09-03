@@ -1,0 +1,149 @@
+﻿$$ -----------------------------------------------------------------------------
+$$ Name: CommonMacros
+$$ Abstract: File contianing multiple useful macros
+$$ Author: B. Capuana - 09/02/2020
+$$
+$$ Notes:
+$$   When modifying a macro that already works, please copy the macro and change
+$$   the name to include a revision number, this will prevent programs that are
+$$   already using a macro contained in this file from having issues after the
+$$   change.
+$$ -----------------------------------------------------------------------------
+FILNAM/'CommonMacros',05.2
+DMISMD/'CommonMacros'
+
+$$ -----------------------------------------------------------------------------
+  $$ Name: OutputPointsToFile
+  $$ Abstract: Writes the actual point data for the specified features to the
+  $$   specified file
+  $$ Author: B. Capuana 09/02/2020
+  $$
+  $$ Arguments:
+  $$   1. FILE_NAME - The name of the point file.
+  $$   2. MODUS_VERSION - The version of modus that is being used. i.e. 1.9
+  $$        If 0 is supplied, the most recent version (highest number) will be
+  $$        used.
+  $$   3. PROGRAM_NAME - The name of the executing program. This can generally be
+  $$        obtained using ASSIGN/DMESYS('CURRENT_DMIS_MODULE_PATH'). See Note 1.
+  $$   4. FIRST_FEATURE - The first feature to output, supplying '.FIRST.' will
+  $$        start at the first measured feature
+  $$   5. LAST_FEATURE - The last feature to output, supplying '.LAST.' will end
+  $$        with the last measured feature
+  $$   6. EXCLUDED_FEATURES - Comma separated list of features that should not be
+  $$      output. Constructed features are not output by default.
+  $$   7. ALIGNMENT_NAME - The name of the alignment to use when point data is
+  $$      output.
+  $$
+  $$ Notes:
+  $$   1. This macro calls an external program GetFeaturesForOutput.exe.
+  $$      GetFeaturesForOutput.exe queries the modus inspection database for all
+  $$      measured features and sorts them by the inspection timestamp associated
+  $$      with the feature. This executable should be located in the same location
+  $$      as this macro file.
+  $$ -----------------------------------------------------------------------------
+  M(OutputPointsToFile)=MACRO/FILE_NAME,MODUS_VERSION,PROGRAM_NAME,FIRST_FEATURE,LAST_FEATURE,EXCLUDED_FEATURES,ALIGNMENT_NAME
+    
+    $$ Meassage for Modus Organiser.
+    CALL/EXTERN,DME,'USERMESSAGE','Writing actual points to file...'
+    
+    $$ Get the current directory of this file
+    DECL/LOCAL,CHAR,512,macroFolder,getFeaturesForOutput
+    macroFolder = ASSIGN/DMESYS('CURRENT_DMIS_MODULE_PATH')
+    
+    $$ create the full path to the GetFeaturesForOutput Executable.
+    getFeaturesForOutput = ASSIGN/CONCAT(macroFolder,'GetFeaturesForOutput.exe')
+    
+    $$ declare variables
+    DECL/LOCAL,CHAR,512,xxArgumentsxx,xxFirstxx,xxLastxx,xxExcludedxx
+    
+    $$ convert the following to upper case.
+    xxFirstxx = ASSIGN/UPC(FIRST_FEATURE)
+    xxLastxx = ASSIGN/UPC(LAST_FEATURE)
+    xxExcludedxx = ASSIGN/UPC(EXCLUDED_FEATURES)
+    
+    $$ create arguments
+    xxArgumentsxx = ASSIGN/CONCAT('"-PROGRAM:',PROGRAM_NAME,'"')
+    
+    $$ if the modus version is zero, don't add the argument
+    IF/(MODUS_VERSION .NE. 0)
+      xxArgumentsxx = ASSIGN/CONCAT(xxArgumentsxx,' -VERSION:',SUBSTR(STR(MODUS_VERSION),1,4))
+    ENDIF
+    
+    $$ check if the arguments are default values, create an argument if they are not.
+    IF/(xxFirstxx .NE. '.FIRST.')
+      xxArgumentsxx = ASSIGN/CONCAT(xxArgumentsxx,' "-FIRST:',FIRST_FEATURE,'"')
+    ENDIF
+    
+    IF/(xxLastxx .NE. '.LAST.')
+      xxArgumentsxx = ASSIGN/CONCAT(xxArgumentsxx,' "-LAST:',LAST_FEATURE,'"')
+    ENDIF
+    
+    IF/(xxExcludedxx .NE. '.NONE.')
+      xxArgumentsxx = ASSIGN/CONCAT(xxArgumentsxx,' "-EXCLUDE:',EXCLUDED_FEATURES,'"')
+    ENDIF
+    
+    $$ Call GetFeaturesForOutput
+    CALL/EXTERN,SYS,getFeaturesForOutput,WAIT,xxArgumentsxx
+    
+    $$ Recall the correct alignment
+    RECALL/DA(ALIGNMENT_NAME)
+    
+    $$ open the file with the list of features
+    DECL/LOCAL,CHAR,512,featureFileName
+    featureFileName = ASSIGN/'C:\USERS\PUBLIC\DOCUMENTS\MeasuredFeatures.txt'
+    DID(FEATURE_FILE)=DEVICE/STOR,featureFileName
+    OPEN/DID(FEATURE_FILE),DIRECT,INPUT
+    
+    $$ open the point file
+    DID(POINT_FILE)=DEVICE/STOR,FILE_NAME
+    OPEN/DID(POINT_FILE),FDATA,DMIS,OUTPUT,OVERWR
+    
+    $$ display settings to output to a file, and turn off the terminal
+    V(DEFAULT)=VFORM/ALL
+    DISPLY/STOR,DMIS
+    
+    $$ Does the file have anything in it?
+    IF/(EOF(DID(FEATURE_FILE)))
+      $$ no, go to end of macro.
+      JUMPTO/(END_READ_FILE)
+    ENDIF
+    
+    $$ read the file
+    DECL/LOCAL,CHAR,512,featureName
+    DECL/LOCAL,INTGR,xxNumberOfPointsxx
+    
+(READ_NEXT)
+    
+    $$ read the next line
+    READ/DID(FEATURE_FILE),featureName
+    
+    $$ does the feature exist?
+    IF/(EXIST(FA(featureName)))
+      
+      $$ yes, get the number of points
+      xxNumberOfPointsxx = ASSIGN/PTDATA(FA(featureName))
+      
+      $$ output the feature
+      OUTPUT/FA(featureName)[1,xxNumberOfPointsxx]
+      
+    ENDIF
+    
+    $$ are we at the end of the file?
+    IF/(EOF(DID(FEATURE_FILE)) .EQ. .FALSE.)
+      $$ no, ouptut the next feature
+      JUMPTO/(READ_NEXT)
+    ENDIF
+    
+    
+(END_READ_FILE)
+    $$ close the files
+    CLOSE/DID(FEATURE_FILE),DELETE
+    CLOSE/DID(POINT_FILE),KEEP
+    
+    $$ revert do default output.
+    DISPLY/TERM,V(DEFAULT),STOR,V(DEFAULT)
+    
+  ENDMAC
+  
+  
+ENDFIL

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "GetFeaturesForOutput": {
+      "commandName": "Project",
+      "commandLineArgs": "-PROGRAM:122514_MAIN_0_0 -VERSION:1.8"
+    }
+  }
+}

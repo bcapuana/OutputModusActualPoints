@@ -1,0 +1,11 @@
+﻿SELECT
+	 DISTINCT(FTName)
+	,ConstType
+	,FADateTime
+FROM
+	DMIS_Features
+WHERE
+	FADateTime IS NOT NULL
+AND ConstType IS NULL
+ORDER BY
+FADateTime
