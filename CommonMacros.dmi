@@ -12,7 +12,7 @@ $$ -----------------------------------------------------------------------------
 FILNAM/'CommonMacros',05.2
 DMISMD/'CommonMacros'
 
-$$ -----------------------------------------------------------------------------
+  $$ -----------------------------------------------------------------------------
   $$ Name: OutputPointsToFile
   $$ Abstract: Writes the actual point data for the specified features to the
   $$   specified file
