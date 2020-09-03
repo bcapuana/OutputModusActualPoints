@@ -8,7 +8,7 @@ There are 2 parts to this project:
 
 ### OutputPointsToFile
 This macro, for modus, is responsible for calling the executable, reading the file it generates, and outputting the points to a text file
-The macro can be located here:
+The macro can be found [here](https://github.com/bcapuana/OutputModusActualPoints/blob/master/CommonMacros.dmi).
 
 ### GetFeaturesForOutput
 The exeuctable connects to the modus database, gets the all of the measured features, orders them by the date/time they were inspected, and writes out a text file for modus to read.
