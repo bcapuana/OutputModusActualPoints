@@ -129,8 +129,8 @@ namespace GetFeaturesForOutput
         {
             List<ModusServer> availableServers = GetAvailableServers();
             string modusServer = GetCorrectModusServer(arguments, availableServers);
-
-            string programName = $"LK_Insp_{arguments.ProgramName.Replace(".DMI",string.Empty)}";
+            FileInfo fi = new FileInfo(arguments.ProgramName);
+            string programName = $"LK_Insp_{arguments.ProgramName.Replace(fi.Extension,string.Empty)}";
 
             string connectionString = $"Data Source={modusServer};Initial Catalog={programName};Integrated Security=True";
 
